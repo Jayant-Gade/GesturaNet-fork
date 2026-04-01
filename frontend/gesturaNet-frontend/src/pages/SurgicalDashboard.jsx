@@ -1,0 +1,283 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+export default function SurgicalDashboard({ state, log, sendCommand }) {
+  const [cmdInput, setCmdInput] = useState('');
+  const [activeTab, setActiveTab] = useState('Overview');
+  const logEndRef = useRef(null);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [log]);
+
+  const handleCommand = (e) => {
+    e.preventDefault();
+    if (cmdInput.trim() !== '') {
+      sendCommand(cmdInput.trim());
+      setCmdInput('');
+    }
+  };
+
+  const allGestures = [
+    { id: 'pinch', label: 'Precision Pinch', icon: 'pinch' },
+    { id: 'volume', label: 'Audio Volume', icon: 'volume_up' },
+    { id: 'brightness', label: 'Luminance', icon: 'brightness_high' },
+    { id: 'scroll', label: 'Vertical Scroll', icon: 'swipe_vertical' },
+  ];
+
+  const isGestureActive = (id) => {
+    if (id === 'pinch' && state.gesture === 'left_click') return true;
+    if (id === 'volume' && state.gesture?.includes('volume')) return true;
+    if (id === 'brightness' && state.gesture?.includes('brightness')) return true;
+    return state.gesture === id;
+  };
+
+  return (
+    <div className="bg-surface-container-lowest text-on-surface font-body selection:bg-primary/30 overflow-hidden h-screen w-full flex">
+      {/* SideNavBar */}
+      <aside className="fixed left-0 top-0 h-full z-40 bg-surface-container-lowest w-20 flex flex-col border-r border-surface-variant/20 font-headline text-sm tracking-tight">
+        <div className="h-16 flex items-center justify-center border-b border-surface-variant/10 mb-4">
+          <span className="text-lg font-bold text-on-surface">S</span>
+        </div>
+        <nav className="flex flex-col items-center gap-4 flex-1">
+          <a onClick={() => setActiveTab('Overview')} className={`group relative flex flex-col items-center p-3 rounded-sm transition-colors cursor-pointer ${activeTab === 'Overview' ? 'text-primary bg-surface-container-low' : 'text-on-surface/50 hover:bg-surface-variant'}`}>
+            <span className="material-symbols-outlined">dashboard</span>
+            <span className="text-[10px] mt-1 opacity-80 font-label">Overview</span>
+          </a>
+          <a onClick={() => setActiveTab('Controls')} className={`group relative flex flex-col items-center p-3 rounded-sm transition-colors cursor-pointer ${activeTab === 'Controls' ? 'text-primary bg-surface-container-low' : 'text-on-surface/50 hover:bg-surface-variant'}`}>
+            <span className="material-symbols-outlined">tune</span>
+            <span className="text-[10px] mt-1 font-label">Controls</span>
+          </a>
+        </nav>
+        <div className="pb-6 flex flex-col items-center gap-4">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30">
+            <img alt="User profile" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAB5H6a9nM5UFw6RXDGE3ytDsXbpZx5xi5PXFb3vjvlZT8cnvJ7URU3aiz0rkAVVWqeW3ZJpNm8urgENBYwQoDtfys_WDObqMdA9MuNzlJ3db7R-b2hm0GcynGwa9IZgFJiXqTQTeFMN1SgfGb7wVwKLkbiIfS8CDsMsc4Yh7Uts89xvzM4A2MipRAEks1m4SVhCxiuPOly6L8RhlQ5AN8RYF40lEVwK3CwE8pgbIIKaRD5XH6qzcbLGTooK7mr0wvi-I6WvLa-XPj2" />
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] font-bold text-on-surface">V-01</p>
+          </div>
+        </div>
+      </aside>
+
+      <div className="pl-20 flex-1 flex flex-col overflow-hidden">
+        {/* TopAppBar */}
+        <header className="h-16 border-b border-surface-variant/10 bg-surface-container-lowest/80 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 relative z-30">
+          <div className="flex items-center gap-8">
+            <h1 className="font-headline font-semibold text-on-surface text-xl tracking-tight">Surgical Interface</h1>
+            <div className="flex items-center gap-6">
+              <span onClick={() => setActiveTab('Overview')} className={`font-label text-xs font-medium uppercase tracking-widest h-16 flex items-center border-b-2 cursor-pointer transition-all ${activeTab === 'Overview' ? 'text-primary border-primary' : 'text-on-surface/60 border-transparent hover:text-primary'}`}>Overview</span>
+              <span onClick={() => setActiveTab('Controls')} className={`font-label text-xs font-medium uppercase tracking-widest h-16 flex items-center border-b-2 cursor-pointer transition-all ${activeTab === 'Controls' ? 'text-primary border-primary' : 'text-on-surface/60 border-transparent hover:text-primary'}`}>Settings</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+             {/* status indicators... */}
+          </div>
+        </header>
+
+        <main className="flex-1 flex flex-row overflow-hidden">
+          {/* Analysis View (Common for both tabs) */}
+          <section className="w-[320px] bg-surface-dim p-6 flex flex-col gap-6 overflow-y-auto border-r border-surface-variant/10">
+            <div className="space-y-4">
+              <h3 className="font-headline text-xs font-semibold uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${state.engineConnected ? 'bg-tertiary animate-pulse' : 'bg-error'}`}></span>
+                System Health
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="bg-surface-container-low p-4 border-l-2 border-primary">
+                  <p className="text-[10px] text-on-surface-variant uppercase tracking-tighter">Process Frequency</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-headline font-bold text-on-surface">{state.fps ? state.fps.toFixed(2) : "0.00"}</span>
+                    <span className="text-xs text-primary">FPS</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h3 className="font-headline text-xs font-semibold uppercase tracking-widest text-on-surface-variant">Live Gestures</h3>
+              <div className="space-y-2">
+                {allGestures.map((g) => {
+                  const active = isGestureActive(g.id);
+                  return (
+                    <div key={g.id} className={`bg-surface-container-low px-4 py-3 flex items-center justify-between transition-all duration-200 ${active ? 'border-r-2 border-primary ring-1 ring-primary/20' : 'opacity-40 hover:opacity-100'}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`material-symbols-outlined ${active ? 'text-primary' : ''}`}>{g.icon}</span>
+                        <span className={`text-sm font-label ${active ? 'text-on-surface font-semibold' : 'text-on-surface/70'}`}>{g.label}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* Conditional Middle View */}
+          <section className="flex-1 bg-surface-container-lowest relative overflow-hidden flex flex-col">
+            {activeTab === 'Overview' ? (
+              <div className="flex-1 p-6 flex items-center justify-center relative overflow-hidden">
+                 <div className="w-full h-full rounded-xl bg-surface-dim border border-outline-variant/10 depth-grid relative flex items-center justify-center group overflow-hidden">
+                   {/* Tracker Content (Same as previous version) */}
+                   <div className={`relative z-10 text-center transition-all duration-500 ${state.show_camera ? 'bg-surface-dim/40 backdrop-blur-md p-6 rounded-xl border border-outline-variant/20' : ''}`}>
+                    <div className={`w-64 h-64 border-[0.3px] ${state.active ? 'border-tertiary/40' : 'border-outline/20'} rounded-full flex items-center justify-center transition-all duration-700 ${state.active ? 'animate-[pulse_4s_infinite]' : ''}`}>
+                      <div className={`w-48 h-48 border-[0.3px] ${state.active ? 'border-primary/50' : 'border-outline/10'} rounded-full flex items-center justify-center`}>
+                        <div className={`w-36 h-36 flex items-center justify-center transition-all duration-1000 ${state.active ? 'scale-110' : 'scale-90 opacity-20 grayscale'}`}>
+                          <img 
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoHI6JIdbqGKSmLVBaNJZxWdFWEMLvQKbqrxMc5PYYhIwxcnz9x7ETGzauvX3pe-uELL47UXZHg6o70jzg5cZrMIF4lZnf8PvPwfn9KR00-M3QEbVFHseA-5hsbvx2rLJ1IAf99XtgwVD96Mi1ruZziejqytl7D6aTW1xUrNo2DceGo0t-cGh9hGl1ORYkFEMZft4nI6XGv4PT2UvR0JJ9a8UC6hCjqEJDJ4xAoUuTRCEMt5efreMamIPnBJRzmLspaB7J-8tuEYYx"
+                            className="w-full h-full object-contain mix-blend-screen"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-8">
+                       <p className={`font-headline text-lg font-bold tracking-tighter ${state.active ? 'text-on-surface' : 'text-on-surface-variant/40'}`}>
+                         {state.current_mode === 2 ? 'SYSTEM CONTROL MODE' : state.active ? 'CURSOR CONTROL MODE' : 'SYSTEM STANDBY'}
+                       </p>
+                    </div>
+                  </div>
+                  {/* Camera feed overlay... */}
+                  {state.show_camera && state.frame && (
+                    <img src={`data:image/jpeg;base64,${state.frame}`} className="absolute inset-0 w-full h-full object-cover opacity-60 z-0" />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
+                <div className="max-w-2xl mx-auto space-y-12">
+                  <header className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-3xl font-headline font-bold text-on-surface tracking-tight uppercase">Controller Parameters</h2>
+                      <p className="text-on-surface-variant mt-2 max-w-md">Fine-tune the gesture-to-cursor translation engine for your specific surgical simulation environment.</p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        sendCommand({ action: "set_smoothing", value: 0.2 });
+                        sendCommand({ action: "set_sensitivity", value: 0.20 });
+                      }}
+                      className="px-4 py-2 bg-surface-container-highest text-[10px] font-mono text-primary font-bold border border-primary/20 hover:bg-primary/10 transition-all uppercase tracking-widest"
+                    >
+                      Restore Defaults
+                    </button>
+                  </header>
+
+                  <div className="grid gap-8">
+                    {/* Smoothing Card */}
+                    <div className="group relative bg-surface-container-low p-10 rounded-2xl border border-outline-variant/10 hover:border-primary/30 transition-all duration-500 shadow-xl overflow-hidden">
+                      <div className="absolute top-0 right-0 p-8">
+                        <div className="text-right">
+                          <span className="block text-[8px] font-mono text-primary uppercase tracking-[0.3em] opacity-60">Smoothing Index</span>
+                          <span className="text-5xl font-mono font-bold text-primary tabular-nums tracking-tighter">
+                            {(state.smoothing || 0).toFixed(3)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="relative z-10 space-y-6">
+                        <div className="max-w-xs">
+                          <h4 className="font-headline font-bold text-on-surface text-lg tracking-wide uppercase">Damping Filter</h4>
+                          <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                            Controls the exponential smoothing factor. Higher values eliminate hand tremors but introduce slight input latency.
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <input 
+                            type="range" min="0.01" max="0.5" step="0.01" 
+                            value={state.smoothing || 0.12}
+                            onChange={(e) => sendCommand({ action: "set_smoothing", value: parseFloat(e.target.value) })}
+                            className="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary/80 transition-all"
+                          />
+                          <div className="flex justify-between text-[10px] font-mono text-outline uppercase tracking-widest opacity-80 font-semibold">
+                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">bolt</span> Raw Input</span>
+                            <span className="flex items-center gap-1">Stabilized <span className="material-symbols-outlined text-[12px]">waves</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sensitivity Card */}
+                    <div className="group relative bg-surface-container-low p-10 rounded-2xl border border-outline-variant/10 hover:border-tertiary/30 transition-all duration-500 shadow-xl overflow-hidden">
+                      <div className="absolute top-0 right-0 p-8">
+                        <div className="text-right">
+                          <span className="block text-[8px] font-mono text-tertiary uppercase tracking-[0.3em] opacity-60">Detection Width</span>
+                          <span className="text-5xl font-mono font-bold text-tertiary tabular-nums tracking-tighter">
+                            {((1 - ((state.sensitivity || 0.2) * 2)) * 100).toFixed(0)}<span className="text-xl">%</span>
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="relative z-10 space-y-6">
+                        <div className="max-w-xs">
+                          <h4 className="font-headline font-bold text-on-surface text-lg tracking-wide uppercase">Capture Sensitivity</h4>
+                          <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                            Defines the active sensor boundaries. Higher percentages map a smaller physical hand zone to the entire screen.
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <input 
+                            type="range" min="0.05" max="0.4" step="0.01" 
+                            value={state.sensitivity || 0.2}
+                            onChange={(e) => sendCommand({ action: "set_sensitivity", value: parseFloat(e.target.value) })}
+                            className="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-tertiary hover:accent-tertiary/80 transition-all"
+                          />
+                          <div className="flex justify-between text-[10px] font-mono text-outline uppercase tracking-widest opacity-80 font-semibold">
+                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">open_with</span> Wide View</span>
+                            <span className="flex items-center gap-1">Precision Zone <span className="material-symbols-outlined text-[12px]">target</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 bg-primary/5 border border-primary/10 p-6 rounded-xl">
+                    <span className="material-symbols-outlined text-primary text-2xl">info</span>
+                    <p className="text-xs text-on-surface-variant leading-normal">
+                      <strong className="text-primary uppercase tracking-widest font-mono text-[10px] block mb-1">PRO TIP:</strong>
+                      For delicate surgical simulations, set <span className="text-primary font-mono">Damping</span> above <span className="text-primary font-mono">0.200</span> and <span className="text-tertiary font-mono font-bold text-[10px]">Capture Sensitivity</span> to <span className="text-tertiary font-mono font-bold text-[10px]">60%</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Floating Interaction UI (Only show on Overview) */}
+            {activeTab === 'Overview' && (
+              <div className="absolute bottom-8 right-8 p-4 bg-surface-container-high/40 backdrop-blur-2xl border border-outline-variant/10 rounded-lg flex gap-4 shadow-2xl z-20">
+                <button 
+                  onClick={() => sendCommand(state.active ? "disable" : "enable")}
+                  className={`px-4 py-2 rounded-sm font-headline font-bold text-[10px] tracking-widest ${state.active ? 'bg-error text-on-error' : 'bg-primary text-on-primary'}`}
+                >
+                  {state.active ? "DEACTIVATE" : "ACTIVATE"}
+                </button>
+                <button 
+                  onClick={() => sendCommand(state.show_camera ? "camera_off" : "camera_on")}
+                  className={`px-4 py-2 rounded-sm font-headline font-bold text-[10px] tracking-widest ${state.show_camera ? 'bg-tertiary text-on-tertiary' : 'bg-surface-container-highest text-on-surface-variant border border-outline-variant/20'}`}
+                >
+                   {state.show_camera ? "CAMERA_OFF" : "CAMERA_ON"}
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* Right Log Feed (Common) */}
+          <section className="w-[360px] bg-surface-container-low border-l border-outline-variant/10 flex flex-col">
+            <div className="p-6 border-b border-outline-variant/10">
+              <h3 className="font-headline text-xs font-semibold uppercase tracking-widest text-on-surface-variant">Live Console Feed</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 font-mono text-[11px] leading-relaxed space-y-3 custom-scrollbar">
+              {log.map((entry, idx) => (
+                <div key={idx} className={`flex gap-3 transition-opacity duration-300 ${entry.type === 'info' ? 'text-on-surface-variant' : entry.type === 'gesture' ? 'text-primary' : 'text-error'}`}>
+                  <span className="opacity-40 shrink-0">{entry.time}</span>
+                  <span className="break-all">{entry.msg}</span>
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+            {/* Terminal Input... */}
+          </section>
+        </main>
+      </div>
+
+      <div className="fixed right-0 top-1/4 bottom-1/4 w-[2px] bg-tertiary shadow-[0_0_10px_rgba(102,217,204,0.5)] z-50 animate-pulse"></div>
+    </div>
+  );
+}
