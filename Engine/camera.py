@@ -214,28 +214,9 @@ def run_capture(loop: asyncio.AbstractEventLoop) -> None:
         # Reset only scroll delta (transient state), NOT gesture
         st.state.scroll_delta = 0.0
 
-        # ── Overlay & Display ─────────────────────────────────────────────
-        if not st.state.show_camera:
-            status = "ACTIVE" if st.state.active else "INACTIVE"
-            color  = (0, 255, 100) if st.state.active else (100, 100, 100)
-            cv2.putText(
-                frame,
-                f"Status: {status} | FPS: {target_fps} | {gesture_info['gesture'].upper()}",
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                color,
-                2,
-            )
-            cv2.imshow("Gesture Engine", frame)
-            st.state.window_open = True
-        elif st.state.window_open:
-            # Hide standalone window if showing in UI
-            try:
-                cv2.destroyWindow("Gesture Engine")
-            except:
-                pass
-            st.state.window_open = False
+        # ── Overlay & Display (Optional for debugging) ─────────────────
+        # cv2.imshow("Gesture Engine", frame) # REVERSIBLE: Uncomment for DESKTOP DEBUG
+        st.state.window_open = False
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break

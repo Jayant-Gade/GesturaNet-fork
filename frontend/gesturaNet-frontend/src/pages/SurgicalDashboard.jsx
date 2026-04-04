@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import FileDispatcher from './FileDispatcher';
 
 export default function SurgicalDashboard({ state, log, sendCommand }) {
   const [cmdInput, setCmdInput] = useState('');
@@ -48,6 +49,10 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
             <span className="material-symbols-outlined">tune</span>
             <span className="text-[10px] mt-1 font-label">Controls</span>
           </a>
+          <a onClick={() => setActiveTab('Vault')} className={`group relative flex flex-col items-center p-3 rounded-sm transition-colors cursor-pointer ${activeTab === 'Vault' ? 'text-primary bg-surface-container-low' : 'text-on-surface/50 hover:bg-surface-variant'}`}>
+            <span className="material-symbols-outlined">folder_shared</span>
+            <span className="text-[10px] mt-1 font-label">Vault</span>
+          </a>
         </nav>
         <div className="pb-6 flex flex-col items-center gap-4">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30">
@@ -67,6 +72,7 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
             <div className="flex items-center gap-6">
               <span onClick={() => setActiveTab('Overview')} className={`font-label text-xs font-medium uppercase tracking-widest h-16 flex items-center border-b-2 cursor-pointer transition-all ${activeTab === 'Overview' ? 'text-primary border-primary' : 'text-on-surface/60 border-transparent hover:text-primary'}`}>Overview</span>
               <span onClick={() => setActiveTab('Controls')} className={`font-label text-xs font-medium uppercase tracking-widest h-16 flex items-center border-b-2 cursor-pointer transition-all ${activeTab === 'Controls' ? 'text-primary border-primary' : 'text-on-surface/60 border-transparent hover:text-primary'}`}>Settings</span>
+              <span onClick={() => setActiveTab('Vault')} className={`font-label text-xs font-medium uppercase tracking-widest h-16 flex items-center border-b-2 cursor-pointer transition-all ${activeTab === 'Vault' ? 'text-primary border-primary' : 'text-on-surface/60 border-transparent hover:text-primary'}`}>File Vault</span>
             </div>
           </div>
           <div className="flex items-center gap-6">
@@ -75,7 +81,7 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
         </header>
 
         <main className="flex-1 flex flex-row overflow-hidden">
-          {/* Analysis View (Common for both tabs) */}
+          {/* Analysis View */}
           <section className="w-[320px] bg-surface-dim p-6 flex flex-col gap-6 overflow-y-auto border-r border-surface-variant/10">
             <div className="space-y-4">
               <h3 className="font-headline text-xs font-semibold uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
@@ -110,12 +116,11 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
             </div>
           </section>
 
-          {/* Conditional Middle View */}
+          {/* Middle View */}
           <section className="flex-1 bg-surface-container-lowest relative overflow-hidden flex flex-col">
             {activeTab === 'Overview' ? (
               <div className="flex-1 p-6 flex items-center justify-center relative overflow-hidden">
                  <div className="w-full h-full rounded-xl bg-surface-dim border border-outline-variant/10 depth-grid relative flex items-center justify-center group overflow-hidden">
-                   {/* Tracker Content (Same as previous version) */}
                    <div className={`relative z-10 text-center transition-all duration-500 ${state.show_camera ? 'bg-surface-dim/40 backdrop-blur-md p-6 rounded-xl border border-outline-variant/20' : ''}`}>
                     <div className={`w-64 h-64 border-[0.3px] ${state.active ? 'border-tertiary/40' : 'border-outline/20'} rounded-full flex items-center justify-center transition-all duration-700 ${state.active ? 'animate-[pulse_4s_infinite]' : ''}`}>
                       <div className={`w-48 h-48 border-[0.3px] ${state.active ? 'border-primary/50' : 'border-outline/10'} rounded-full flex items-center justify-center`}>
@@ -133,13 +138,12 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                        </p>
                     </div>
                   </div>
-                  {/* Camera feed overlay... */}
                   {state.show_camera && state.frame && (
                     <img src={`data:image/jpeg;base64,${state.frame}`} className="absolute inset-0 w-full h-full object-cover opacity-60 z-0" />
                   )}
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'Controls' ? (
               <div className="flex-1 p-12 overflow-y-auto custom-scrollbar">
                 <div className="max-w-2xl mx-auto space-y-12">
                   <header className="flex justify-between items-start">
@@ -159,7 +163,6 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                   </header>
 
                   <div className="grid gap-8">
-                    {/* Smoothing Card */}
                     <div className="group relative bg-surface-container-low p-10 rounded-2xl border border-outline-variant/10 hover:border-primary/30 transition-all duration-500 shadow-xl overflow-hidden">
                       <div className="absolute top-0 right-0 p-8">
                         <div className="text-right">
@@ -169,7 +172,6 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                           </span>
                         </div>
                       </div>
-                      
                       <div className="relative z-10 space-y-6">
                         <div className="max-w-xs">
                           <h4 className="font-headline font-bold text-on-surface text-lg tracking-wide uppercase">Damping Filter</h4>
@@ -177,7 +179,6 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                             Controls the exponential smoothing factor. Higher values eliminate hand tremors but introduce slight input latency.
                           </p>
                         </div>
-                        
                         <div className="space-y-3">
                           <input 
                             type="range" min="0.01" max="0.5" step="0.01" 
@@ -185,15 +186,10 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                             onChange={(e) => sendCommand({ action: "set_smoothing", value: parseFloat(e.target.value) })}
                             className="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-primary hover:accent-primary/80 transition-all"
                           />
-                          <div className="flex justify-between text-[10px] font-mono text-outline uppercase tracking-widest opacity-80 font-semibold">
-                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">bolt</span> Raw Input</span>
-                            <span className="flex items-center gap-1">Stabilized <span className="material-symbols-outlined text-[12px]">waves</span></span>
-                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Sensitivity Card */}
                     <div className="group relative bg-surface-container-low p-10 rounded-2xl border border-outline-variant/10 hover:border-tertiary/30 transition-all duration-500 shadow-xl overflow-hidden">
                       <div className="absolute top-0 right-0 p-8">
                         <div className="text-right">
@@ -203,7 +199,6 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                           </span>
                         </div>
                       </div>
-                      
                       <div className="relative z-10 space-y-6">
                         <div className="max-w-xs">
                           <h4 className="font-headline font-bold text-on-surface text-lg tracking-wide uppercase">Capture Sensitivity</h4>
@@ -211,7 +206,6 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                             Defines the active sensor boundaries. Higher percentages map a smaller physical hand zone to the entire screen.
                           </p>
                         </div>
-                        
                         <div className="space-y-3">
                           <input 
                             type="range" min="0.05" max="0.4" step="0.01" 
@@ -219,27 +213,20 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
                             onChange={(e) => sendCommand({ action: "set_sensitivity", value: parseFloat(e.target.value) })}
                             className="w-full h-1.5 bg-surface-container-highest rounded-full appearance-none cursor-pointer accent-tertiary hover:accent-tertiary/80 transition-all"
                           />
-                          <div className="flex justify-between text-[10px] font-mono text-outline uppercase tracking-widest opacity-80 font-semibold">
-                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">open_with</span> Wide View</span>
-                            <span className="flex items-center gap-1">Precision Zone <span className="material-symbols-outlined text-[12px]">target</span></span>
-                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-4 bg-primary/5 border border-primary/10 p-6 rounded-xl">
-                    <span className="material-symbols-outlined text-primary text-2xl">info</span>
-                    <p className="text-xs text-on-surface-variant leading-normal">
-                      <strong className="text-primary uppercase tracking-widest font-mono text-[10px] block mb-1">PRO TIP:</strong>
-                      For delicate surgical simulations, set <span className="text-primary font-mono">Damping</span> above <span className="text-primary font-mono">0.200</span> and <span className="text-tertiary font-mono font-bold text-[10px]">Capture Sensitivity</span> to <span className="text-tertiary font-mono font-bold text-[10px]">60%</span>.
-                    </p>
-                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+                <div className="max-w-5xl mx-auto">
+                  <FileDispatcher />
                 </div>
               </div>
             )}
 
-            {/* Floating Interaction UI (Only show on Overview) */}
             {activeTab === 'Overview' && (
               <div className="absolute bottom-8 right-8 p-4 bg-surface-container-high/40 backdrop-blur-2xl border border-outline-variant/10 rounded-lg flex gap-4 shadow-2xl z-20">
                 <button 
@@ -258,7 +245,7 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
             )}
           </section>
 
-          {/* Right Log Feed (Common) */}
+          {/* Right Log Feed */}
           <section className="w-[360px] bg-surface-container-low border-l border-outline-variant/10 flex flex-col">
             <div className="p-6 border-b border-outline-variant/10">
               <h3 className="font-headline text-xs font-semibold uppercase tracking-widest text-on-surface-variant">Live Console Feed</h3>
@@ -272,7 +259,6 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
               ))}
               <div ref={logEndRef} />
             </div>
-            {/* Terminal Input... */}
           </section>
         </main>
       </div>
