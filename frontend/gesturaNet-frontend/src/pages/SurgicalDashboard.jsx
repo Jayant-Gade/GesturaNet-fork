@@ -222,7 +222,7 @@ export default function SurgicalDashboard({ state, log, sendCommand }) {
             ) : (
               <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
                 <div className="max-w-5xl mx-auto">
-                  <FileDispatcher />
+                  <FileDispatcher state={state} />
                 </div>
               </div>
             )}

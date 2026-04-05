@@ -6,27 +6,10 @@ const { fetch } = require('undici');
 // Store active/pending transfers in memory
 const transfers = new Map();
 
-// ── Queued readline ───────────────────────────────────────────────────────────
-// readline is single-threaded: if two requests arrive at once, the second
-// rl.question() call would silently queue behind the first and appear frozen.
-// We fix this with an explicit promise queue so each prompt runs one at a time.
-
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
-let promptQueue = Promise.resolve();
-
-function askUser(question) {
-  const result = promptQueue.then(
-    () => new Promise(resolve => rl.question(question, ans => resolve(ans.toLowerCase())))
-  );
-  promptQueue = result.catch(() => {});
-  return result;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
+const pendingRequests = new Map(); // requestId -> resolve function
 
 const Handshake = {
-  handleReceiveRequest: async (req, res) => {
+  handleReceiveRequest: async (req, res, broadcastToClients) => {
     const { fileName, fileSize, mimeType, senderIp, senderPort, hash } = req.body;
 
     if (!fileName || !senderIp || !senderPort) {
@@ -43,9 +26,37 @@ const Handshake = {
     console.log(chalk.gray(`From          : ${senderIp}:${senderPort}`));
     console.log(chalk.cyan('----------------------------------------'));
 
-    const answer = await askUser(chalk.whiteBright('Accept this file? (y/n): '));
+    const requestId = crypto.randomUUID();
+    
+    const resultPromise = new Promise((resolve) => {
+      pendingRequests.set(requestId, resolve);
+    });
 
-    if (answer === 'y' || answer === 'yes') {
+    if (broadcastToClients) {
+      broadcastToClients({
+        type: 'file_receive_request',
+        requestId,
+        fileName,
+        fileSize,
+        senderIp,
+        senderPort
+      });
+      console.log(chalk.gray('[Handshake] Waiting for UI to accept/reject...'));
+    }
+
+    // Auto-timeout after 60s
+    setTimeout(() => {
+      if (pendingRequests.has(requestId)) {
+        console.log(chalk.red('[Handshake] Request timed out.'));
+        const resolve = pendingRequests.get(requestId);
+        pendingRequests.delete(requestId);
+        resolve(false);
+      }
+    }, 60000);
+
+    const accepted = await resultPromise;
+
+    if (accepted) {
       const transferId = crypto.randomUUID();
       transfers.set(transferId, {
         id: transferId,
@@ -63,8 +74,16 @@ const Handshake = {
       console.log(chalk.green(`[Handshake] Accepted — ID: ${transferId}`));
       return res.json({ status: 'accepted', uploadUrl: `/upload/${transferId}`, transferId });
     } else {
-      console.log(chalk.red('[Handshake] Rejected by user.'));
+      console.log(chalk.red('[Handshake] Rejected.'));
       return res.json({ status: 'rejected' });
+    }
+  },
+
+  resolveRequest: (requestId, accepted) => {
+    if (pendingRequests.has(requestId)) {
+      const resolve = pendingRequests.get(requestId);
+      pendingRequests.delete(requestId);
+      resolve(accepted);
     }
   },
 

@@ -1,14 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import useFilePeer from '../hooks/useFilePeer';
 
-const FileDispatcher = () => {
+const FileDispatcher = ({ state }) => {
   const { peers, stats, selectedFile, setSelectedFile, handleSend } = useFilePeer();
+  const [dispatchProgress, setDispatchProgress] = useState(0);
 
   // Pulse animation for active streams
   const isStreaming = stats.status !== 'idle' && stats.status !== 'completed';
 
+  // Gesture handling for 2-second Broadcast hold
+  useEffect(() => {
+    // Only engage if file selected, peers available, and not already streaming
+    if (!state || !state.gesture || !selectedFile || peers.length === 0 || isStreaming) {
+      setDispatchProgress(0);
+      return;
+    }
+
+    let interval;
+    if (state.gesture === 'closed') {
+      interval = setInterval(() => {
+        setDispatchProgress(prev => {
+          if (prev >= 100) {
+            // Reached 2s limit, Dispatch to all peers
+            peers.forEach(peer => handleSend(peer));
+            return 0;
+          }
+          return prev + 5; // 5% per 100ms = 2000ms total
+        });
+      }, 100);
+    } else {
+      setDispatchProgress(0);
+    }
+
+    return () => clearInterval(interval);
+  }, [state?.gesture, selectedFile, peers, isStreaming, handleSend]);
+
   return (
     <div className="space-y-6 text-white font-sans max-w-4xl mx-auto p-4">
+      {/* GLOBAL DISPATCH PROGRESS */}
+      {dispatchProgress > 0 && (
+        <div className="bg-cyan-900/40 border border-cyan-500/50 rounded-xl relative overflow-hidden h-10 shadow-[0_0_20px_-5px_cyan]">
+          <div className="absolute top-0 left-0 h-full bg-cyan-500/50 transition-all duration-100 ease-linear" style={{ width: `${dispatchProgress}%` }} />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-[10px] font-mono font-bold tracking-widest text-cyan-50">
+               GESTURE DETECTED: BROADCASTING {dispatchProgress}%
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 1. DISPATCHER HEADER */}
       <div className="flex justify-between items-center border-b border-white/10 pb-4">
         <div>

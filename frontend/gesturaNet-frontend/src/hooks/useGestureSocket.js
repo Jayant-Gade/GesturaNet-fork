@@ -12,6 +12,7 @@ export default function useGestureSocket(url) {
     current_mode: 1,
   });
   const [log, setLog] = useState([]);
+  const [fileRequest, setFileRequest] = useState(null);
   const wsRef = useRef(null);
   const prevGestureRef = useRef("none");
 
@@ -70,6 +71,9 @@ export default function useGestureSocket(url) {
           } else if (message.type === "engine_disconnected") {
             setState(prev => ({ ...prev, engineConnected: false }));
             addLog("Python Engine lost", "error");
+          } else if (message.type === "file_receive_request") {
+            setFileRequest(message);
+            addLog(`Incoming file request: ${message.fileName}`, "info");
           }
         } catch (error) {
           addLog(`WS message parse error: ${error.message}`, "error");
@@ -102,5 +106,5 @@ export default function useGestureSocket(url) {
     };
   }, [url, addLog]);
 
-  return { state, log, sendCommand };
+  return { state, log, sendCommand, fileRequest, setFileRequest };
 }
