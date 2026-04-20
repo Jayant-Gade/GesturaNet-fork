@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 __pycache__
+env
+TECHNICAL_REFERENCE.md
+myagents.md

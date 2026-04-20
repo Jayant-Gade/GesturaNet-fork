@@ -52,6 +52,7 @@ def detect_gesture(landmarks) -> dict:
     middle_ring_dist  = distance(middle_tip, ring_tip)
     ring_pinky_dist   = distance(ring_tip, pinky_tip)
     thumb_middle_dist = distance(thumb_tip, middle_tip)
+    thumb_pinky_dist  = distance(thumb_tip, pinky_tip)
 
     # DRAG: all three main tips (4, 8, 12) pinch together
     if (thumb_index_dist < DRAG_THRESHOLD
@@ -69,9 +70,9 @@ def detect_gesture(landmarks) -> dict:
         return {"gesture": "right_click", "point": index_tip}
 
     # LEFT CLICK: index + thumb pinch (8 & 4) — only if middle is NOT close
-    if thumb_index_dist < 0.08 and index_middle_dist > 0.10:
+    # LEFT CLICK: thumb + pinky finger pinch/overlap (4 & 20)
+    if thumb_pinky_dist < 0.08 :#and thumb_index_dist > 0.10:
         return {"gesture": "left_click", "point": index_tip}
-
     # SCROLL: all four fingers (index, middle, ring, pinky) clustered together
     # Must be held for 3 seconds before triggering to avoid interference with left_click
     if (index_middle_dist < 0.12 and middle_ring_dist < 0.12 and ring_pinky_dist < 0.12):

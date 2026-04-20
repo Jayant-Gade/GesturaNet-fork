@@ -26,7 +26,7 @@ FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 CAMERA_FPS = 30
 
-ACTIVE_ZONE_MARGIN = 0.2       # normalized margin to remap active zone to full screen
+ACTIVE_ZONE_MARGIN = 0.8      # normalized margin to remap active zone to full screen
 
 MODEL_PATH = "hand_landmarker.task"
 MODEL_URL = (
