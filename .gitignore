@@ -25,3 +25,4 @@ dist-ssr
 __pycache__
 env
 TECHNICAL_REFERENCE.md
+myagents.md
