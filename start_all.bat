@@ -7,6 +7,14 @@ echo ==========================================
 echo  Starting GesturaNet Multi-Tier Stack
 echo ==========================================
 
+:: Run environment setup first
+call env_setup.bat
+if %errorlevel% neq 0 (
+    echo [ERROR] Environment setup failed. Aborting.
+    pause
+    exit /b 1
+)
+
 :: We use PowerShell to launch processes so we can capture their exact PIDs.
 :: This ensures that even if Node/Python change the window title, we can still kill them.
 set PS_SCRIPT="%TEMP%\gesturanet_launcher.ps1"
